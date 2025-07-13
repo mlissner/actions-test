@@ -1,4 +1,4 @@
-name: Get Merged PR Labels on Push to Main
+name: Conditional Jobs Based on Merged PR Labels
 
 on:
   push:
@@ -8,7 +8,8 @@ on:
 jobs:
   get-pr-labels:
     runs-on: ubuntu-latest
-
+    outputs:
+      labels: ${{ steps.find_pr.outputs.labels }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -41,6 +42,28 @@ jobs:
             core.setOutput("pr_number", pr.number);
             console.log(`PR #${pr.number} labels: ${labels.join(", ")}`);
 
-      - name: Print PR labels
-        run: |
-          echo "PR #${{ steps.find_pr.outputs.pr_number }} had labels: ${{ steps.find_pr.outputs.labels }}"
+  job1:
+    needs: get-pr-labels
+    runs-on: ubuntu-latest
+    if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job1') }}
+    steps:
+      - name: Step 1 of Job 1
+        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job1-step1') }}
+        run: echo "Running step 1 of job 1"
+
+      - name: Step 2 of Job 1
+        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job1-step2') }}
+        run: echo "Running step 2 of job 1"
+
+  job2:
+    needs: get-pr-labels
+    runs-on: ubuntu-latest
+    if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job2') }}
+    steps:
+      - name: Step 1 of Job 2
+        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job2-step1') }}
+        run: echo "Running step 1 of job 2"
+
+      - name: Step 2 of Job 2
+        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job2-step2') }}
+        run: echo "Running step 2 of job 2"
