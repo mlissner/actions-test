@@ -1,0 +1,39 @@
+name: Multi-Job No-Op Workflow
+
+on:
+  push:
+    branches:
+      - '*' # Trigger on push to any branch
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup Step 1: Initialize Setup
+      run: echo "Setup Job: Step 1 - Initializing setup..."
+    - name: Setup Step 2: Configure Environment
+      run: echo "Setup Job: Step 2 - Configuring environment..."
+    - name: Setup Step 3: Prepare Dependencies
+      run: echo "Setup Job: Step 3 - Preparing dependencies..."
+
+  test:
+    needs: setup # This job depends on the 'setup' job completing successfully
+    runs-on: ubuntu-latest
+    steps:
+    - name: Test Step 1: Run Unit Tests
+      run: echo "Test Job: Step 1 - Running unit tests..."
+    - name: Test Step 2: Run Integration Tests
+      run: echo "Test Job: Step 2 - Running integration tests..."
+    - name: Test Step 3: Generate Reports
+      run: echo "Test Job: Step 3 - Generating test reports..."
+
+  deploy:
+    needs: test # This job depends on the 'test' job completing successfully
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy Step 1: Build Artifacts
+      run: echo "Deploy Job: Step 1 - Building deployment artifacts..."
+    - name: Deploy Step 2: Push to Registry
+      run: echo "Deploy Job: Step 2 - Pushing artifacts to registry..."
+    - name: Deploy Step 3: Final Deployment
+      run: echo "Deploy Job: Step 3 - Performing final deployment..."
