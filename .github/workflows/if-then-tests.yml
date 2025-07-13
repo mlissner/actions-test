@@ -1,39 +1,46 @@
-name: Multi-Job No-Op Workflow
+name: Get Merged PR Labels on Push to Main
 
 on:
   push:
     branches:
-      - '*' # Trigger on push to any branch
+      - main
 
 jobs:
-  setup:
+  get-pr-labels:
     runs-on: ubuntu-latest
-    steps:
-    - name: Setup Step 1 Initialize Setup
-      run: "echo \"Setup Job Step 1 - Initializing setup...\""
-    - name: Setup Step 2 Configure Environment
-      run: "echo \"Setup Job Step 2 - Configuring environment...\""
-    - name: Setup Step 3 Prepare Dependencies
-      run: "echo \"Setup Job Step 3 - Preparing dependencies...\""
 
-  test:
-    needs: setup # This job depends on the 'setup' job completing successfully
-    runs-on: ubuntu-latest
     steps:
-    - name: Test Step 1 Run Unit Tests
-      run: "echo \"Test Job Step 1 - Running unit tests...\""
-    - name: Test Step 2 Run Integration Tests
-      run: "echo \"Test Job Step 2 - Running integration tests...\""
-    - name: Test Step 3 Generate Reports
-      run: "echo \"Test Job Step 3 - Generating test reports...\""
+      - name: Checkout
+        uses: actions/checkout@v3
 
-  deploy:
-    needs: test # This job depends on the 'test' job completing successfully
-    runs-on: ubuntu-latest
-    steps:
-    - name: Deploy Step 1 Build Artifacts
-      run: "echo \"Deploy Job Step 1 - Building deployment artifacts...\""
-    - name: Deploy Step 2 Push to Registry
-      run: "echo \"Deploy Job Step 2 - Pushing artifacts to registry...\""
-    - name: Deploy Step 3 Final Deployment
-      run: "echo \"Deploy Job Step 3 - Performing final deployment...\""
+      - name: Find Merged PR by merge_commit_sha
+        id: find_pr
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const commitSha = context.sha;
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "closed",
+              sort: "updated",
+              direction: "desc",
+              per_page: 50
+            });
+
+            const pr = prs.find(p => p.merge_commit_sha === commitSha);
+            if (!pr) {
+              core.setOutput("labels", "");
+              core.warning("No merged PR found for this commit.");
+              return;
+            }
+
+            const labels = pr.labels.map(l => l.name);
+            core.setOutput("labels", labels.join(","));
+            core.setOutput("pr_number", pr.number);
+            console.log(`PR #${pr.number} labels: ${labels.join(", ")}`);
+
+      - name: Print PR labels
+        run: |
+          echo "PR #${{ steps.find_pr.outputs.pr_number }} had labels: ${{ steps.find_pr.outputs.labels }}"
