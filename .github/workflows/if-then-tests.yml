@@ -1,4 +1,4 @@
-name: Conditional Jobs Based on Merged PR Labels
+name: Conditional Jobs Based on Exact PR Labels
 
 on:
   push:
@@ -9,12 +9,12 @@ jobs:
   get-pr-labels:
     runs-on: ubuntu-latest
     outputs:
-      labels: ${{ steps.find_pr.outputs.labels }}
+      labels_json: ${{ steps.find_pr.outputs.labels_json }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Find Merged PR by merge_commit_sha
+      - name: Find Merged PR and Extract Labels
         id: find_pr
         uses: actions/github-script@v6
         with:
@@ -32,38 +32,37 @@ jobs:
 
             const pr = prs.find(p => p.merge_commit_sha === commitSha);
             if (!pr) {
-              core.setOutput("labels", "");
+              core.setOutput("labels_json", "[]");
               core.warning("No merged PR found for this commit.");
               return;
             }
 
             const labels = pr.labels.map(l => l.name);
-            core.setOutput("labels", labels.join(","));
-            core.setOutput("pr_number", pr.number);
+            core.setOutput("labels_json", JSON.stringify(labels));
             console.log(`PR #${pr.number} labels: ${labels.join(", ")}`);
 
   job1:
     needs: get-pr-labels
     runs-on: ubuntu-latest
-    if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job1') }}
+    if: ${{ !fromJSON(needs.get-pr-labels.outputs.labels_json).includes('skip-job1') }}
     steps:
       - name: Step 1 of Job 1
-        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job1-step1') }}
+        if: ${{ !fromJSON(needs.get-pr-labels.outputs.labels_json).includes('skip-job1-step1') }}
         run: echo "Running step 1 of job 1"
 
       - name: Step 2 of Job 1
-        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job1-step2') }}
+        if: ${{ !fromJSON(needs.get-pr-labels.outputs.labels_json).includes('skip-job1-step2') }}
         run: echo "Running step 2 of job 1"
 
   job2:
     needs: get-pr-labels
     runs-on: ubuntu-latest
-    if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job2') }}
+    if: ${{ !fromJSON(needs.get-pr-labels.outputs.labels_json).includes('skip-job2') }}
     steps:
       - name: Step 1 of Job 2
-        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job2-step1') }}
+        if: ${{ !fromJSON(needs.get-pr-labels.outputs.labels_json).includes('skip-job2-step1') }}
         run: echo "Running step 1 of job 2"
 
       - name: Step 2 of Job 2
-        if: ${{ !contains(needs.get-pr-labels.outputs.labels, 'skip-job2-step2') }}
+        if: ${{ !fromJSON(needs.get-pr-labels.outputs.labels_json).includes('skip-job2-step2') }}
         run: echo "Running step 2 of job 2"
